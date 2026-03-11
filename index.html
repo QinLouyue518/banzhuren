@@ -145,6 +145,102 @@
             border-color: #fde68a;
         }
 
+        /* 班级氛围样式 */
+        .atmosphere-pill {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .atmosphere-pill:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .atmosphere-pill.excellent {
+            background: linear-gradient(135deg, #10b981, #34d399);
+            color: white;
+        }
+        
+        .atmosphere-pill.good {
+            background: linear-gradient(135deg, #3b82f6, #60a5fa);
+            color: white;
+        }
+        
+        .atmosphere-pill.fair {
+            background: linear-gradient(135deg, #f59e0b, #fbbf24);
+            color: white;
+        }
+        
+        .atmosphere-pill.poor {
+            background: linear-gradient(135deg, #ef4444, #f87171);
+            color: white;
+        }
+        
+        .atmosphere-pill.terrible {
+            background: linear-gradient(135deg, #7f1d1d, #b91c1c);
+            color: white;
+        }
+        
+        .factor-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            margin: 8px 0;
+            overflow: hidden;
+        }
+        
+        .factor-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .factor-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            margin-bottom: 4px;
+        }
+        
+        .factor-name {
+            color: #64748b;
+        }
+        
+        .factor-value {
+            font-weight: bold;
+        }
+        
+        .effect-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #f1f5f9;
+            border-radius: 12px;
+            font-size: 0.75em;
+            margin: 2px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .effect-badge.positive {
+            background: #dcfce7;
+            color: #15803d;
+            border-color: #bbf7d0;
+        }
+        
+        .effect-badge.negative {
+            background: #fee2e2;
+            color: #b91c1c;
+            border-color: #fecaca;
+        }
+        
+        .suggestion-item {
+            padding: 8px 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            font-size: 0.85em;
+            border-left: 3px solid #3b82f6;
+        }
+
         .sub-grid { display: grid; grid-template-columns: repeat(3, 1fr);
         gap: 6px; }
         .sub-box { background: #f8fafc; padding: 6px; border-radius: 8px; text-align: center;
@@ -288,11 +384,19 @@
 </div>
 
 <header class="hidden" id="main-header">
-    <div style="font-size: 1.5em; font-weight: 900; color: var(--primary);">高三(OI退役)班</div>
+    <div style="font-size: 1.5em; font-weight: 900; color: var(--primary);">高三(12)班</div>
     <div class="stat-group">
         <div class="stat-pill">🗓️ <span id="ui-time">2025年 9月 (秋) W1</span></div>
         <div class="stat-pill">💰 班费: <b id="ui-money">5000</b></div>
         <div class="stat-pill">⚡ AP: <b id="ui-ap">3</b><span id="ap-max-txt" style="font-size:0.7em; color:#94a3b8">/3</span></div>
+        
+        <!-- 班级氛围显示 -->
+        <div class="stat-pill atmosphere-pill" id="atmosphere-pill" onclick="UI.showAtmosphereDetail()" style="cursor: pointer;" title="点击查看班级氛围详情">
+            <span id="atmosphere-icon">🌱</span>
+            <span id="atmosphere-value">50</span>
+            <span id="atmosphere-level" style="font-size:0.7em; color:#94a3b8">一般</span>
+        </div>
+        
         <button style="background:var(--danger); color:white; padding:10px 25px; border-radius:25px;" onclick="Game.nextTurn()" id="btn-next-turn">结束本周</button>
     </div>
 </header>
@@ -302,6 +406,7 @@
         <div class="nav-tabs">
             <button class="tab-btn active" onclick="UI.switchTab('action')">🎯 决策</button>
             <button class="tab-btn" onclick="UI.switchTab('fac')">🏗️ 设施</button>
+            <button class="tab-btn" onclick="UI.switchTab('atmosphere')">🌱 氛围</button>
         </div>
         
         <div id="panel-action" class="panel-content active">
@@ -382,6 +487,12 @@
         <div id="panel-fac" class="panel-content">
             <div id="fac-container"></div>
             <p style="font-size:0.8em; color:#7f8c8d; margin-top:20px;">提升设施可显著减轻学生压力、增强学习收益并抵御恶劣天气造成的生病概率。</p>
+        </div>
+        
+        <div id="panel-atmosphere" class="panel-content">
+            <div id="atmosphere-container">
+                <!-- 氛围详情将由JavaScript动态生成 -->
+            </div>
         </div>
     </aside>
 
@@ -693,6 +804,112 @@ const CONFIG = {
             }
         ]
     },
+    
+    // 班级氛围系统配置
+    CLASS_ATMOSPHERE: {
+        // 影响因素权重
+        FACTOR_WEIGHTS: {
+            discipline: 0.25,      // 纪律（25%）
+            hygiene: 0.15,         // 卫生（15%）
+            activity: 0.20,        // 活动参与（20%）
+            relationship: 0.25,    // 人际关系（25%）
+            achievement: 0.15      // 成就荣誉（15%）
+        },
+        
+        // 氛围等级效果
+        LEVEL_EFFECTS: {
+            excellent: { // 90-100 优秀
+                name: "优秀",
+                color: "#10b981",
+                effects: {
+                    studyEfficiency: 1.20,      // 学习效率+20%
+                    stressGrowth: 0.80,         // 压力增长-20%
+                    eventSuccessRate: 1.30,     // 活动成功率+30%
+                    teacherApRecovery: 1.10,    // 教师AP恢复+10%
+                    examBonus: 1.15             // 考试加成+15%
+                }
+            },
+            good: { // 70-89 良好
+                name: "良好",
+                color: "#3b82f6",
+                effects: {
+                    studyEfficiency: 1.10,
+                    stressGrowth: 0.90,
+                    eventSuccessRate: 1.10,
+                    teacherApRecovery: 1.05,
+                    examBonus: 1.05
+                }
+            },
+            fair: { // 40-69 一般
+                name: "一般",
+                color: "#f59e0b",
+                effects: {
+                    studyEfficiency: 1.00,
+                    stressGrowth: 1.00,
+                    eventSuccessRate: 1.00,
+                    teacherApRecovery: 1.00,
+                    examBonus: 1.00
+                }
+            },
+            poor: { // 20-39 较差
+                name: "较差",
+                color: "#ef4444",
+                effects: {
+                    studyEfficiency: 0.90,
+                    stressGrowth: 1.20,
+                    eventSuccessRate: 0.80,
+                    teacherApRecovery: 0.95,
+                    examBonus: 0.95
+                }
+            },
+            terrible: { // 0-19 极差
+                name: "极差",
+                color: "#7f1d1d",
+                effects: {
+                    studyEfficiency: 0.70,
+                    stressGrowth: 1.50,
+                    eventSuccessRate: 0.60,
+                    teacherApRecovery: 0.90,
+                    dropoutRisk: 0.10,          // 辍学风险10%
+                    examBonus: 0.85
+                }
+            }
+        },
+        
+        // 改善建议
+        IMPROVEMENT_SUGGESTIONS: {
+            discipline: [
+                "加强课堂纪律管理",
+                "设立班干部监督制度",
+                "开展纪律教育主题班会",
+                "制定明确的班级规章制度"
+            ],
+            hygiene: [
+                "完善值日生制度",
+                "定期进行卫生检查",
+                "开展卫生习惯教育",
+                "美化教室环境"
+            ],
+            activity: [
+                "组织班级集体活动",
+                "鼓励学生参加社团",
+                "开展文体竞赛",
+                "举办主题班会"
+            ],
+            relationship: [
+                "组织团队建设活动",
+                "调解学生矛盾",
+                "鼓励互助学习",
+                "建立和谐的师生关系"
+            ],
+            achievement: [
+                "设立进步奖励机制",
+                "展示学生优秀作品",
+                "组织学科竞赛",
+                "表彰优秀学生"
+            ]
+        }
+    },
     GRADES: [
         { l: 'US', v: 148 }, { l: 'SSS+', v: 142 }, { l: 'SSS', v: 135 },
         { l: 'SS', v: 125 }, { l: 'S', v: 115 }, { l: 'A', v: 100 },
@@ -752,7 +969,21 @@ let State = {
     weather: {i:'☀️', n:'晴朗', eff:''}, season: '秋',
     fac: { desk: 0, tech: 0, ac: 0 },
     tempAlloc: {},
-    students: []
+    students: [],
+    
+    // 班级氛围系统状态
+    classAtmosphere: {
+        value: 50, // 总体氛围值 0-100
+        factors: {
+            discipline: 50,      // 纪律 0-100
+            hygiene: 50,         // 卫生 0-100
+            activity: 50,        // 活动参与 0-100
+            relationship: 50,    // 人际关系 0-100
+            achievement: 50      // 成就荣誉 0-100
+        },
+        history: [], // 历史记录 [{week, value, factors}]
+        lastUpdatedWeek: 0
+    }
 };
 const Game = {
     start(diff) {
@@ -991,6 +1222,297 @@ const Game = {
         return effects.efficiency; // 返回效率乘数供学习计算使用
     },
 
+    // 班级氛围系统方法
+    updateClassAtmosphere() {
+        // 每周更新一次
+        if (State.classAtmosphere.lastUpdatedWeek === State.week) {
+            return;
+        }
+        
+        // 计算各因素值
+        this.calculateAtmosphereFactors();
+        
+        // 计算总体氛围值
+        this.calculateOverallAtmosphere();
+        
+        // 记录历史
+        this.recordAtmosphereHistory();
+        
+        // 更新最后更新周数
+        State.classAtmosphere.lastUpdatedWeek = State.week;
+        
+        // 记录氛围变化日志
+        this.logAtmosphereChange();
+    },
+
+    calculateAtmosphereFactors() {
+        const students = State.students;
+        const factors = State.classAtmosphere.factors;
+        
+        // 1. 纪律因素：基于违规次数和班干部管理
+        const violations = students.filter(s => {
+            // 检查是否有违规行为（如网瘾发作、翘课等）
+            return s.violationsThisWeek > 0 || 
+                   (s.talents.some(t => t.id === 'n4') && Math.random() < 0.1); // 网瘾学生可能违规
+        }).length;
+        
+        factors.discipline = Math.max(0, Math.min(100, 100 - violations * 8));
+        
+        // 2. 卫生因素：基于值日生系统和随机检查
+        factors.hygiene = this.calculateHygieneScore();
+        
+        // 3. 活动参与：基于最近活动参与率
+        factors.activity = this.calculateActivityParticipation();
+        
+        // 4. 人际关系：基于学生关系和冲突次数
+        factors.relationship = this.calculateRelationshipScore();
+        
+        // 5. 成就荣誉：基于近期获奖和进步
+        factors.achievement = this.calculateAchievementScore();
+    },
+
+    calculateHygieneScore() {
+        // 基础卫生分
+        let score = 60;
+        
+        // 设施加成
+        if (State.fac.desk > 0) score += 10; // 课桌升级
+        if (State.fac.ac > 0) score += 15;   // 空调系统
+        
+        // 随机因素
+        score += (Math.random() * 20 - 10); // -10到+10的随机变化
+        
+        return Math.max(0, Math.min(100, score));
+    },
+
+    calculateActivityParticipation() {
+        // 基础参与度
+        let score = 50;
+        
+        // 根据学生特质计算
+        State.students.forEach(student => {
+            // 外向型学生更积极参与活动
+            if (student.traits.personality && student.traits.personality.id === 'extrovert') {
+                score += 2;
+            }
+            // 内向型学生参与度较低
+            if (student.traits.personality && student.traits.personality.id === 'introvert') {
+                score -= 1;
+            }
+        });
+        
+        // 最近是否有活动
+        if (State.week % 4 === 0) { // 每月一次活动
+            score += 15;
+        }
+        
+        return Math.max(0, Math.min(100, score));
+    },
+
+    calculateRelationshipScore() {
+        // 基础关系分
+        let score = 50;
+        
+        // 根据学生压力水平调整
+        const avgStress = State.students.reduce((sum, s) => sum + s.stress, 0) / State.students.length;
+        score -= avgStress * 0.2; // 压力越高，关系越差
+        
+        // 根据冲突次数调整
+        const conflicts = this.countStudentConflicts();
+        score -= conflicts * 5;
+        
+        // 根据互助情况调整
+        const collaborations = this.countStudentCollaborations();
+        score += collaborations * 3;
+        
+        return Math.max(0, Math.min(100, score));
+    },
+
+    calculateAchievementScore() {
+        // 基础成就分
+        let score = 40;
+        
+        // 考试成绩加成
+        if (State.students.some(s => s.history.scores.length > 0)) {
+            const latestScores = State.students.map(s => 
+                s.history.scores.length > 0 ? s.history.scores[s.history.scores.length - 1] : 0
+            );
+            const avgScore = latestScores.reduce((a, b) => a + b, 0) / latestScores.length;
+            score += avgScore * 0.05; // 平均分每10分加0.5分
+        }
+        
+        // 进步学生加成
+        const improvingStudents = State.students.filter(s => {
+            if (s.history.scores.length < 2) return false;
+            const recent = s.history.scores.slice(-2);
+            return recent[1] > recent[0]; // 最近一次比前一次高
+        }).length;
+        
+        score += improvingStudents * 2;
+        
+        // 获奖加成（如果有竞赛系统）
+        score += this.countAwards() * 5;
+        
+        return Math.max(0, Math.min(100, score));
+    },
+
+    countStudentConflicts() {
+        // 模拟学生冲突次数
+        let conflicts = 0;
+        
+        // 压力高的学生更容易发生冲突
+        State.students.forEach(student => {
+            if (student.stress > 70 && Math.random() < 0.1) {
+                conflicts++;
+            }
+            
+            // 特定特质组合可能冲突
+            if (student.traits.personality && student.traits.personality.id === 'perfectionist') {
+                if (Math.random() < 0.05) conflicts++;
+            }
+        });
+        
+        return conflicts;
+    },
+
+    countStudentCollaborations() {
+        // 模拟学生合作次数
+        let collaborations = 0;
+        
+        // 小组学习活动
+        State.students.forEach(student => {
+            // 外向型学生更可能合作
+            if (student.traits.personality && student.traits.personality.id === 'extrovert') {
+                if (Math.random() < 0.15) collaborations++;
+            }
+            
+            // 有共同兴趣的学生可能合作
+            if (student.traits.hobbies && student.traits.hobbies.length > 0) {
+                if (Math.random() < 0.08) collaborations++;
+            }
+        });
+        
+        return collaborations;
+    },
+
+    countAwards() {
+        // 模拟获奖次数
+        let awards = 0;
+        
+        // 优秀学生可能获奖
+        State.students.forEach(student => {
+            const totalScore = Object.values(student.mastery).reduce((a, b) => a + b, 0);
+            if (totalScore > 500 && Math.random() < 0.2) {
+                awards++;
+            }
+        });
+        
+        return awards;
+    },
+
+    calculateOverallAtmosphere() {
+        const factors = State.classAtmosphere.factors;
+        const weights = CONFIG.CLASS_ATMOSPHERE.FACTOR_WEIGHTS;
+        
+        // 加权计算
+        let total = 0;
+        for (const [factor, value] of Object.entries(factors)) {
+            total += value * weights[factor];
+        }
+        
+        // 平滑过渡（避免突变）
+        const currentValue = State.classAtmosphere.value;
+        const newValue = Math.round(currentValue * 0.7 + total * 0.3);
+        
+        State.classAtmosphere.value = Math.max(0, Math.min(100, newValue));
+    },
+
+    recordAtmosphereHistory() {
+        // 记录当前氛围状态
+        State.classAtmosphere.history.push({
+            week: State.week,
+            value: State.classAtmosphere.value,
+            factors: { ...State.classAtmosphere.factors }
+        });
+        
+        // 限制历史记录长度
+        if (State.classAtmosphere.history.length > 20) {
+            State.classAtmosphere.history.shift();
+        }
+    },
+
+    logAtmosphereChange() {
+        const level = this.getAtmosphereLevel();
+        const levelInfo = CONFIG.CLASS_ATMOSPHERE.LEVEL_EFFECTS[level];
+        
+        // 记录氛围等级变化
+        this.log(`班级氛围: ${State.classAtmosphere.value} (${levelInfo.name})`, "[氛围更新]");
+        
+        // 如果氛围显著变化，记录详细信息
+        if (State.classAtmosphere.history.length >= 2) {
+            const prev = State.classAtmosphere.history[State.classAtmosphere.history.length - 2];
+            const current = State.classAtmosphere.history[State.classAtmosphere.history.length - 1];
+            
+            const change = current.value - prev.value;
+            if (Math.abs(change) >= 10) {
+                const direction = change > 0 ? "提升" : "下降";
+                this.log(`班级氛围${direction}了${Math.abs(change)}点`, "[氛围变化]");
+            }
+        }
+    },
+
+    getAtmosphereLevel() {
+        const value = State.classAtmosphere.value;
+        
+        if (value >= 90) return "excellent";
+        if (value >= 70) return "good";
+        if (value >= 40) return "fair";
+        if (value >= 20) return "poor";
+        return "terrible";
+    },
+
+    getAtmosphereEffects() {
+        const level = this.getAtmosphereLevel();
+        return CONFIG.CLASS_ATMOSPHERE.LEVEL_EFFECTS[level].effects;
+    },
+
+    getImprovementSuggestions() {
+        const factors = State.classAtmosphere.factors;
+        const suggestions = CONFIG.CLASS_ATMOSPHERE.IMPROVEMENT_SUGGESTIONS;
+        
+        let result = [];
+        
+        // 找出最需要改进的因素（值最低的）
+        let minFactor = null;
+        let minValue = 100;
+        
+        for (const [factor, value] of Object.entries(factors)) {
+            if (value < minValue) {
+                minValue = value;
+                minFactor = factor;
+            }
+        }
+        
+        // 添加改进建议
+        if (minFactor && minValue < 60) {
+            const factorSuggestions = suggestions[minFactor];
+            if (factorSuggestions && factorSuggestions.length > 0) {
+                // 随机选择1-2条建议
+                const count = Math.min(2, factorSuggestions.length);
+                const selected = this.shuffleArray([...factorSuggestions]).slice(0, count);
+                result.push(...selected);
+            }
+        }
+        
+        // 如果氛围总体较差，添加通用建议
+        if (State.classAtmosphere.value < 40) {
+            result.push("需要全面改善班级氛围，关注学生心理健康");
+            result.push("考虑组织班级团建活动，增强凝聚力");
+        }
+        
+        return result;
+    },
+
     getRandStu(num) {
         return this.shuffleArray(State.students).slice(0, num);
     },
@@ -1084,12 +1606,17 @@ const Game = {
                 // 应用特质效率影响
                 baseGain *= traitEfficiency;
                 
+                // 应用班级氛围效果
+                const atmosphereEffects = this.getAtmosphereEffects();
+                baseGain *= atmosphereEffects.studyEfficiency || 1.0;
+                
                 // 应用增益
                 s.mastery[sub] += baseGain;
                 
-                // 压力增加（考虑特质影响）
+                // 压力增加（考虑特质和氛围影响）
                 let stressIncrease = Math.max(2, (cat==='test'?15:12) - deskReduce);
                 stressIncrease += traitEffects.stressChange; // 特质带来的压力变化
+                stressIncrease *= atmosphereEffects.stressGrowth || 1.0; // 氛围带来的压力增长影响
                 s.stress += stressIncrease;
                 
                 // 记录特质影响日志（仅当影响显著时）
@@ -1097,6 +1624,14 @@ const Game = {
                     const efficiencyPercent = Math.round((traitEfficiency - 1.0) * 100);
                     const effectText = efficiencyPercent > 0 ? `+${efficiencyPercent}%` : `${efficiencyPercent}%`;
                     this.log(`${s.name} 的特质使学习效率${effectText}`, "[特质影响]");
+                }
+                
+                // 记录氛围影响日志（仅当影响显著时）
+                const atmosphereEfficiency = atmosphereEffects.studyEfficiency || 1.0;
+                if (Math.abs(atmosphereEfficiency - 1.0) > 0.05) {
+                    const atmospherePercent = Math.round((atmosphereEfficiency - 1.0) * 100);
+                    const atmosphereText = atmospherePercent > 0 ? `+${atmospherePercent}%` : `${atmospherePercent}%`;
+                    this.log(`班级氛围使学习效率${atmosphereText}`, "[氛围影响]");
                 }
             }
             else if (cat === 'train') {
@@ -1110,6 +1645,9 @@ const Game = {
                 const traitEffects = this.calculateTraitEffects(s, activityType, weekProgress);
                 const traitEfficiency = this.applyTraitEffects(s, traitEffects);
                 
+                // 应用班级氛围效果
+                const atmosphereEffects = this.getAtmosphereEffects();
+                
                 subs.forEach(su => {
                     let baseGain = (su === 'chi' ? 1.5 : 2.5) * 2.0 * techBonus * this.getGainMultiplier(su, s.mastery[su]) * diffMod;
                     if (s.stress > 80) baseGain *= Math.max(0, 1 - (s.stress - 80) / 100);
@@ -1117,12 +1655,16 @@ const Game = {
                     // 应用特质效率影响
                     baseGain *= traitEfficiency;
                     
+                    // 应用班级氛围效果
+                    baseGain *= atmosphereEffects.studyEfficiency || 1.0;
+                    
                     s.mastery[su] += baseGain;
                 });
                 
-                // 压力增加（考虑特质影响）
+                // 压力增加（考虑特质和氛围影响）
                 let stressIncrease = Math.max(10, 25 - deskReduce);
                 stressIncrease += traitEffects.stressChange;
+                stressIncrease *= atmosphereEffects.stressGrowth || 1.0;
                 s.stress += stressIncrease;
                 
                 // 记录特质影响日志
@@ -1130,6 +1672,14 @@ const Game = {
                     const efficiencyPercent = Math.round((traitEfficiency - 1.0) * 100);
                     const effectText = efficiencyPercent > 0 ? `+${efficiencyPercent}%` : `${efficiencyPercent}%`;
                     this.log(`${s.name} 的特质使训练效率${effectText}`, "[特质影响]");
+                }
+                
+                // 记录氛围影响日志
+                const atmosphereEfficiency = atmosphereEffects.studyEfficiency || 1.0;
+                if (Math.abs(atmosphereEfficiency - 1.0) > 0.05) {
+                    const atmospherePercent = Math.round((atmosphereEfficiency - 1.0) * 100);
+                    const atmosphereText = atmospherePercent > 0 ? `+${atmospherePercent}%` : `${atmospherePercent}%`;
+                    this.log(`班级氛围使训练效率${atmosphereText}`, "[氛围影响]");
                 }
             }
             else if (cat === 'rest') {
@@ -1314,7 +1864,11 @@ const Game = {
     },
 
     finishTurnLogic() {
-        State.ap = State.maxAp;
+        // 恢复AP（考虑氛围效果）
+        const atmosphereEffects = this.getAtmosphereEffects();
+        const apRecoveryBonus = atmosphereEffects.teacherApRecovery || 1.0;
+        State.ap = Math.min(State.maxAp, Math.floor(State.maxAp * apRecoveryBonus));
+        
         State.money += 1000 + (State.students.length * 150); 
 
         // 运动会特判
@@ -1334,7 +1888,10 @@ const Game = {
 
         State.students.forEach(s => {
             let heal = s.talents.some(t=>t.id==='t3') ? 8 : 4;
-            s.stress = Math.max(0, s.stress - heal);
+            
+            // 应用氛围效果：压力增长/减少
+            const stressGrowthModifier = atmosphereEffects.stressGrowth || 1.0;
+            s.stress = Math.max(0, s.stress - heal * stressGrowthModifier);
             
             if(s.talents.some(t=>t.id==='n5')) s.stress += 8; // 失眠
 
@@ -1352,6 +1909,10 @@ const Game = {
                 this.log(`糟糕，${s.name} 因为天气原因病倒了！`, "[生病1个月]");
             }
         });
+        
+        // 更新班级氛围
+        this.updateClassAtmosphere();
+        
         this.triggerRandomEvent();
         this.updateUI();
     },
@@ -1413,23 +1974,29 @@ const Game = {
                 let base = s.mastery[sub.id];
                 if(sub.id === 'chi' && base > 120) base = 120 + (base - 120)*0.1; 
                 
-                let sFac = 1 - 
-(s.stress/600);
+                let sFac = 1 - (s.stress/600);
   
                 let raw = base * sFac * drop * sickPen;
+                
+                // 应用班级氛围效果到考试分数
+                const atmosphereEffects = this.getAtmosphereEffects();
+                raw *= atmosphereEffects.examBonus || 1.0;
                 
                 let pGood = (base / sub.cap) * 0.4; 
                 let pBad = (1 - base / sub.cap) * 0.4 * (s.sickTimer>0?2:1); 
 
+                // 应用氛围效果到事件概率
+                const eventSuccessRate = atmosphereEffects.eventSuccessRate || 1.0;
+                let adjustedPGood = pGood * eventSuccessRate;
+                let adjustedPBad = pBad * (2.0 - eventSuccessRate); // 氛围差时负面事件概率增加
          
-    
                 let rnd = Math.random();
-                if(rnd < pGood) {
+                if(rnd < adjustedPGood) {
                     let evList = EXAM_EVENTS[sub.id].filter(x=>x.v > 0);
                     let ev = evList[Math.floor(Math.random()*evList.length)];
                     obj.evTxt += `[${sub.n}]${ev.t}(+${ev.v})<br>`;
                     raw += ev.v;
-                } else if (rnd > 1 - pBad) {
+                } else if (rnd > 1 - adjustedPBad) {
                     let evList = EXAM_EVENTS[sub.id].filter(x=>x.v < 0);
                     let ev = evList[Math.floor(Math.random()*evList.length)];
                     obj.evTxt += `[${sub.n}]${ev.t}(${ev.v})<br>`;
@@ -1676,6 +2243,7 @@ document.getElementById('ui-season').innerText = State.season + "季";
         UI.renderClassroom();
         UI.renderFacilities();
         UI.renderArchiveTabs();
+        UI.updateAtmosphereUI();
     }
 };
 /** ================== UI 控制 ================== */
@@ -1852,6 +2420,150 @@ return `<div class="sub-box"><span class="sub-label">${sub.n}</span><div class="
     renderArchiveTabs() {
         document.getElementById('arc-tabs').innerHTML = State.students.map((s, i) => `<div class="arc-tab ${i===0?'active':''}" onclick="UI.showArcDetail(${i}, this)">${s.name}</div>`).join('');
 if(State.students.length > 0) this.showArcDetail(0, document.querySelector('.arc-tab'));
+    },
+
+    // 班级氛围UI方法
+    updateAtmosphereUI() {
+        const atmosphere = State.classAtmosphere;
+        const level = Game.getAtmosphereLevel();
+        const levelInfo = CONFIG.CLASS_ATMOSPHERE.LEVEL_EFFECTS[level];
+        
+        // 更新氛围药丸
+        const pill = document.getElementById('atmosphere-pill');
+        pill.className = 'stat-pill atmosphere-pill ' + level;
+        pill.title = `班级氛围: ${atmosphere.value} (${levelInfo.name})`;
+        
+        // 更新图标和数值
+        document.getElementById('atmosphere-icon').textContent = this.getAtmosphereIcon(level);
+        document.getElementById('atmosphere-value').textContent = atmosphere.value;
+        document.getElementById('atmosphere-level').textContent = levelInfo.name;
+        document.getElementById('atmosphere-level').style.color = levelInfo.color;
+        
+        // 渲染氛围详情面板
+        this.renderAtmosphereDetail();
+    },
+
+    getAtmosphereIcon(level) {
+        const icons = {
+            excellent: '🌟',
+            good: '✨',
+            fair: '🌱',
+            poor: '🌧️',
+            terrible: '💀'
+        };
+        return icons[level] || '🌱';
+    },
+
+    renderAtmosphereDetail() {
+        const container = document.getElementById('atmosphere-container');
+        if (!container) return;
+        
+        const atmosphere = State.classAtmosphere;
+        const level = Game.getAtmosphereLevel();
+        const levelInfo = CONFIG.CLASS_ATMOSPHERE.LEVEL_EFFECTS[level];
+        const effects = Game.getAtmosphereEffects();
+        const suggestions = Game.getImprovementSuggestions();
+        
+        // 计算各因素颜色
+        const getFactorColor = (value) => {
+            if (value >= 80) return '#10b981';
+            if (value >= 60) return '#3b82f6';
+            if (value >= 40) return '#f59e0b';
+            if (value >= 20) return '#ef4444';
+            return '#7f1d1d';
+        };
+        
+        container.innerHTML = `
+            <div style="margin-bottom: 20px;">
+                <h3 style="margin: 0 0 10px 0; color: ${levelInfo.color};">班级氛围: ${atmosphere.value} (${levelInfo.name})</h3>
+                <div class="factor-bar">
+                    <div class="factor-fill" style="width: ${atmosphere.value}%; background: ${levelInfo.color};"></div>
+                </div>
+                <p style="font-size: 0.85em; color: #64748b; margin-top: 8px;">
+                    班级氛围影响学生的学习效率、压力水平和活动成功率。
+                </p>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <h4 style="margin: 0 0 12px 0; color: #475569;">影响因素</h4>
+                ${Object.entries(atmosphere.factors).map(([key, value]) => {
+                    const factorNames = {
+                        discipline: '纪律',
+                        hygiene: '卫生',
+                        activity: '活动参与',
+                        relationship: '人际关系',
+                        achievement: '成就荣誉'
+                    };
+                    const color = getFactorColor(value);
+                    return `
+                        <div class="factor-item" style="margin-bottom: 12px;">
+                            <div class="factor-label">
+                                <span class="factor-name">${factorNames[key]}</span>
+                                <span class="factor-value" style="color: ${color};">${value}</span>
+                            </div>
+                            <div class="factor-bar">
+                                <div class="factor-fill" style="width: ${value}%; background: ${color};"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <h4 style="margin: 0 0 12px 0; color: #475569;">当前效果</h4>
+                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                    ${Object.entries(effects).map(([key, value]) => {
+                        const effectNames = {
+                            studyEfficiency: '学习效率',
+                            stressGrowth: '压力增长',
+                            eventSuccessRate: '活动成功率',
+                            teacherApRecovery: '教师AP恢复',
+                            examBonus: '考试加成',
+                            dropoutRisk: '辍学风险'
+                        };
+                        const isPositive = value >= 1.0;
+                        const percent = Math.round((value - 1.0) * 100);
+                        const sign = percent >= 0 ? '+' : '';
+                        const text = effectNames[key] ? `${effectNames[key]} ${sign}${percent}%` : key;
+                        
+                        return `
+                            <span class="effect-badge ${isPositive ? 'positive' : 'negative'}">
+                                ${text}
+                            </span>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+            
+            ${suggestions.length > 0 ? `
+                <div style="margin-bottom: 20px;">
+                    <h4 style="margin: 0 0 12px 0; color: #475569;">改进建议</h4>
+                    <div style="font-size: 0.9em;">
+                        ${suggestions.map(suggestion => `
+                            <div class="suggestion-item">${suggestion}</div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+            
+            <div style="font-size: 0.8em; color: #94a3b8; padding: 12px; background: #f8fafc; border-radius: 8px;">
+                <p style="margin: 0 0 6px 0;">💡 <strong>氛围管理提示:</strong></p>
+                <ul style="margin: 0; padding-left: 18px;">
+                    <li>良好的班级氛围能显著提升学习效率</li>
+                    <li>关注学生心理健康，避免压力过高</li>
+                    <li>定期组织班级活动，增强凝聚力</li>
+                    <li>及时处理学生矛盾，维护和谐关系</li>
+                </ul>
+            </div>
+        `;
+    },
+
+    showAtmosphereDetail() {
+        // 切换到氛围面板
+        this.switchTab('atmosphere');
+        
+        // 滚动到顶部
+        document.querySelector('.sidebar').scrollTop = 0;
     },
 
     showArcDetail(idx, el) {
