@@ -977,6 +977,15 @@ const Game = {
             cols.forEach(c => tr.innerHTML += `<td id="c-${rIdx}-${c}" class="exam-cell ${c==='ev'?'event-col':''}"></td>`);
             tb.appendChild(tr);
         });
+
+        // 添加平均分行
+        let avgRowIndex = rData.length;
+        let avgTr = document.createElement('tr');
+        avgTr.style.fontWeight = 'bold';
+        avgTr.style.background = '#f8fafc';
+        avgTr.innerHTML = `<td style="color: var(--primary);">班级平均分</td>`;
+        cols.forEach(c => avgTr.innerHTML += `<td id="c-${avgRowIndex}-${c}" class="exam-cell"></td>`);
+        tb.appendChild(avgTr);
         cols.forEach((colId, cIdx) => {
             setTimeout(() => {
                 rData.forEach((row, rIdx) => {
@@ -1000,6 +1009,42 @@ const Game = {
                         cell.classList.add('pop');
 }, rIdx * 100);
                 });
+
+                // 计算并显示平均分
+                setTimeout(() => {
+                    let avgCell = document.getElementById(`c-${avgRowIndex}-${colId}`);
+                    if (avgCell) {
+                        if (colId === 'total') {
+                            // 计算总分平均分
+                            let totalSum = rData.reduce((sum, row) => sum + row.total, 0);
+                            let avgTotal = Math.round(totalSum / rData.length);
+                            avgCell.innerText = avgTotal;
+                            avgCell.style.color = "var(--danger)";
+                            avgCell.style.fontWeight = "bold";
+                        } else if (colId === 'rank') {
+                            // 计算平均排名（取整数）
+                            let rankSum = rData.reduce((sum, row) => sum + row.rank, 0);
+                            let avgRank = Math.round(rankSum / rData.length);
+                            avgCell.innerText = `第${avgRank}名`;
+                            avgCell.style.color = "#8b5cf6";
+                            avgCell.style.fontWeight = "bold";
+                        } else if (colId === 'ev') {
+                            avgCell.innerHTML = '-';
+                            avgCell.style.fontWeight = "bold";
+                        } else {
+                            // 计算各科平均分
+                            let subjectSum = rData.reduce((sum, row) => sum + row.scores[colId], 0);
+                            let avgScore = Math.round(subjectSum / rData.length);
+                            avgCell.innerText = avgScore;
+                            
+                            let cap = CONFIG.SUBJECTS.find(x=>x.id===colId).cap;
+                            avgCell.style.background = UI.getScoreColor(avgScore, cap);
+                            if(avgScore/cap > 0.65) avgCell.style.color = 'white';
+                            avgCell.style.fontWeight = "bold";
+                        }
+                        avgCell.classList.add('pop');
+                    }
+                }, rData.length * 100 + 50);
 
                 if(cIdx === cols.length - 1) {
                     setTimeout(() => {
